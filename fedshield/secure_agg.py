@@ -5,7 +5,7 @@ per peer (one side adds, the other subtracts) to its fixed-point update. The ser
 only ever sees masked vectors; when it adds them up the masks cancel exactly and only
 the sum is revealed.
 
-Arithmetic is done in the integers mod 2^32 so cancellation is exact. Because the server
+Arithmetic is done in the integers mod 2^48 so cancellation is exact. Because the server
 sees only the sum, robust aggregators (median, Krum...) cannot run on top of this; use
 FedAvg with client-side norm clipping instead.
 """
@@ -17,8 +17,8 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
-MOD = 2**32
-SCALE = 2**16  # 16 fractional bits; sums must stay within +-32768
+MOD = 2**48
+SCALE = 2**24  # 24 fractional bits; sums must stay within +-2**23 (updates are pre-weighted, so |sum| < ~10)
 
 
 def encode(v: np.ndarray) -> np.ndarray:

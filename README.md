@@ -81,7 +81,7 @@ Each bank runs DP-SGD locally:
 
 **Secure aggregation:**
 - Each pair of banks agrees on a key with X25519 and derives a fresh mask per round via HKDF.
-- Updates are fixed-point encoded mod 2³², so the masks cancel exactly. The server sees only the sum.
+- Updates are fixed-point encoded mod 2⁴⁸, so the masks cancel exactly. The server sees only the sum.
 - The final PR-AUC matches plain FedAvg within quantisation error (0.664 vs 0.667), and the overhead is negligible.
 
 Secure aggregation and robust aggregation conflict: Krum or the median need to see individual updates. The code refuses that combination. Use FedAvg with client-side norm clipping when updates must stay hidden.
