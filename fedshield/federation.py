@@ -105,8 +105,10 @@ def run(banks: list[Bank], cfg: FedConfig = FedConfig(), on_round=None) -> Histo
     n_clients = len(banks)
     malicious = set(rng.choice(n_clients, cfg.n_malicious, replace=False).tolist()) if cfg.attack != "none" else set()
     data = []
+    clean_sizes = []
     for i, b in enumerate(banks):
         x, y = norm(b.x_train), b.y_train
+        clean_sizes.append(len(x))
         if i in malicious:
             x, y = poison_data(cfg.attack, x, y, rng)
         data.append((x, y))
@@ -137,13 +139,14 @@ def run(banks: list[Bank], cfg: FedConfig = FedConfig(), on_round=None) -> Histo
             if cfg.client_clip:
                 u = u * min(1.0, cfg.client_clip / (u.norm().item() + 1e-12))
             updates.append(u)
-            ns.append(len(x))
+            ns.append(clean_sizes[c])
 
         n = torch.tensor(ns, dtype=torch.float32)
         if cfg.secure_agg:
             directory = {c: sec_clients[c].public_key for c in chosen}
-            masked = [sec_clients[c].masked_update((u * k).numpy(), directory, r) for c, u, k in zip(chosen, updates, ns)]
-            agg = torch.as_tensor(secure_agg.aggregate(masked) / n.sum().item(), dtype=torch.float32)
+            total_n = float(n.sum().item())
+            masked = [sec_clients[c].masked_update((u * (k / total_n)).numpy(), directory, r) for c, u, k in zip(chosen, updates, ns)]
+            agg = torch.as_tensor(secure_agg.aggregate(masked), dtype=torch.float32)
         else:
             agg = AGGREGATORS[cfg.aggregator](torch.stack(updates), n, f=max(1, cfg.n_malicious))
         load_flat(model, w0 + agg)
