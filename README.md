@@ -113,7 +113,7 @@ fedshield/
   privacy.py       RDP accountant for the sampled Gaussian mechanism
   aggregators.py   FedAvg, norm clipping, trimmed mean, median, Krum, Multi-Krum
   attacks.py       label flip, sign flip, noise, backdoor, model-replacement boosting
-  secure_agg.py    X25519 pairwise masking, exact mod-2^32 arithmetic
+  secure_agg.py    X25519 pairwise masking, exact mod-2^48 arithmetic
   federation.py    training loop, evaluation, local-only and centralised baselines
   experiments.py   reproducible experiment suite
 app.py             Streamlit simulator
