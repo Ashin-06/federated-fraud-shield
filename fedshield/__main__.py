@@ -4,6 +4,7 @@
     python -m fedshield run --dp-sigma 1.0 --rounds 40
     python -m fedshield run --secure-agg --client-clip 5
     python -m fedshield experiments [--quick]
+    python -m fedshield realdata --data creditcard.pq     # the same on real card transactions
 """
 from __future__ import annotations
 
@@ -35,8 +36,17 @@ def main(argv=None):
     e = sub.add_parser("experiments", help="full experiment suite -> results/")
     e.add_argument("--quick", action="store_true")
     e.add_argument("--out", default="results")
+    rd = sub.add_parser("realdata", help="federation on the real ULB card-fraud data -> results/real_data.json")
+    rd.add_argument("--data", required=True, help="OpenML #1597 parquet or Kaggle creditcard.csv")
+    rd.add_argument("--rounds", type=int, default=30)
+    rd.add_argument("--out", default="results/real_data.json")
     a = ap.parse_args(argv)
 
+    if a.cmd == "realdata":
+        from .realdata import main as realdata
+
+        print(json.dumps(realdata(a.data, a.rounds, a.out), indent=2))
+        return
     if a.cmd == "experiments":
         from .experiments import main as exp
 

@@ -86,16 +86,50 @@ Each bank runs DP-SGD locally:
 
 Secure aggregation and robust aggregation conflict: Krum or the median need to see individual updates. The code refuses that combination. Use FedAvg with client-side norm clipping when updates must stay hidden.
 
+### On real card transactions
+
+`python -m fedshield realdata --data creditcard.pq` runs the same federation on the [ULB / Worldline card-fraud data](https://api.openml.org/d/1597): 284,807 real card transactions, 492 frauds. Results are in `results/real_data.json`.
+- **How the banks are formed.** No multi-bank dataset is public. Transactions are clustered by behaviour and each cluster is shared out unevenly (Dirichlet α = 0.5), so every bank gets its own customer mix, size and fraud rate.
+- **How it is tested.** Each bank trains on the first 60% of the two days and is tested on the rest. There are no fraud typologies or backdoor-trigger fields in this data, so those two measurements don't apply.
+
+| Bank | Train rows / frauds | Test frauds | Alone PR-AUC | Federated PR-AUC |
+|---|---|---|---|---|
+| Bank 1 | 28,953 / 46 | 29 | 0.708 | **0.796** |
+| Bank 2 | 23,404 / 41 | 19 | 0.702 | **0.728** |
+| Bank 3 | 17,008 / 40 | 24 | 0.765 | **0.771** |
+| Bank 4 | 21,767 / 29 | 15 | 0.713 | **0.745** |
+| Bank 5 | 39,210 / 113 | 27 | 0.684 | **0.773** |
+| Bank 6 | 14,779 / 14 | 6 | **0.667** | 0.613 |
+| Bank 7 | 8,280 / 18 | 3 | 0.668 | **0.674** |
+| Bank 8 | 17,481 / 59 | 9 | 1.000 | 1.000 |
+
+Two of eight banks malicious, global PR-AUC:
+
+| Attack | FedAvg | Trimmed mean | Median | Multi-Krum |
+|---|---|---|---|---|
+| none | 0.766 | 0.783 | 0.787 | 0.771 |
+| label flip | 0.777 | 0.783 | 0.232 | 0.615 |
+| sign flip (boosted) | **0.001** | 0.764 | 0.776 | **0.786** |
+| random noise | 0.754 | 0.781 | 0.774 | 0.759 |
+
+What the real data shows:
+- **Federation helped 6 of 8 banks.** Global PR-AUC is 0.766, against 0.659 for one model trained on everyone's pooled data. That pooled model uses the suite's fixed settings (30 epochs at a lower learning rate) and is untuned, so read it as a reference point, not an upper bound. Per-bank numbers are noisy: the smaller banks have only 3–15 test frauds.
+- **One boosted sign-flip destroys plain FedAvg here too** (0.001). Multi-Krum and trimmed mean hold.
+- **The choice of robust aggregator depends on the data.** With real fraud this rare, label flipping hardly moves FedAvg, but it wrecks the coordinate-wise median (0.23).
+- **Privacy is cheap here.** DP-SGD at ε = 12.3 costs nothing measurable (0.765), and ε = 3.9 costs 0.02 (0.746).
+- **Secure aggregation is exact.** Its weights match plain FedAvg to about 10⁻⁶ per round. Over 30 rounds the rounding differences compound and the final PR-AUC lands at 0.746 against 0.765, within the run-to-run spread of so few test frauds.
+
 ## Run it
 
 ```bash
 pip install -r requirements.txt
-python -m pytest -q                                   # 8 tests
+python -m pytest -q                                   # 9 tests
 python -m fedshield run                               # plain FedAvg
 python -m fedshield run --attack backdoor --malicious 2 --aggregator multi_krum
 python -m fedshield run --dp-sigma 1.0                # with differential privacy
 python -m fedshield run --secure-agg --client-clip 5  # masked updates
 python -m fedshield experiments [--quick]             # full tables + plot
+python -m fedshield realdata --data creditcard.pq     # the federation on real card transactions
 streamlit run app.py                                  # interactive simulator
 ```
 
@@ -109,6 +143,7 @@ The dashboard lets you:
 ```
 fedshield/
   data.py          consortium generator: 8 banks, 5 typologies, covariate shift, backdoor trigger
+  realdata.py      the same federation on the real ULB card-fraud data
   model.py         MLP, local SGD and DP-SGD (per-example clipping, Poisson sampling)
   privacy.py       RDP accountant for the sampled Gaussian mechanism
   aggregators.py   FedAvg, norm clipping, trimmed mean, median, Krum, Multi-Krum

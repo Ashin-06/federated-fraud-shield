@@ -1,0 +1,128 @@
+{
+  "dataset": "ULB / Worldline card fraud (OpenML #1597), 8 banks by behaviour cluster, time split",
+  "banks": [
+    {
+      "bank": "Bank 1",
+      "train_rows": 28953,
+      "train_fraud": 46,
+      "test_rows": 20790,
+      "test_fraud": 29,
+      "local_pr_auc": 0.7081,
+      "federated_pr_auc": 0.796
+    },
+    {
+      "bank": "Bank 2",
+      "train_rows": 23404,
+      "train_fraud": 41,
+      "test_rows": 17403,
+      "test_fraud": 19,
+      "local_pr_auc": 0.7015,
+      "federated_pr_auc": 0.7279
+    },
+    {
+      "bank": "Bank 3",
+      "train_rows": 17008,
+      "train_fraud": 40,
+      "test_rows": 9757,
+      "test_fraud": 24,
+      "local_pr_auc": 0.7646,
+      "federated_pr_auc": 0.7707
+    },
+    {
+      "bank": "Bank 4",
+      "train_rows": 21767,
+      "train_fraud": 29,
+      "test_rows": 14787,
+      "test_fraud": 15,
+      "local_pr_auc": 0.7127,
+      "federated_pr_auc": 0.7445
+    },
+    {
+      "bank": "Bank 5",
+      "train_rows": 39210,
+      "train_fraud": 113,
+      "test_rows": 28604,
+      "test_fraud": 27,
+      "local_pr_auc": 0.6842,
+      "federated_pr_auc": 0.7727
+    },
+    {
+      "bank": "Bank 6",
+      "train_rows": 14779,
+      "train_fraud": 14,
+      "test_rows": 8450,
+      "test_fraud": 6,
+      "local_pr_auc": 0.667,
+      "federated_pr_auc": 0.613
+    },
+    {
+      "bank": "Bank 7",
+      "train_rows": 8280,
+      "train_fraud": 18,
+      "test_rows": 2530,
+      "test_fraud": 3,
+      "local_pr_auc": 0.6675,
+      "federated_pr_auc": 0.6736
+    },
+    {
+      "bank": "Bank 8",
+      "train_rows": 17481,
+      "train_fraud": 59,
+      "test_rows": 11604,
+      "test_fraud": 9,
+      "local_pr_auc": 1.0,
+      "federated_pr_auc": 1.0
+    }
+  ],
+  "global_pr_auc": {
+    "federated": 0.7656,
+    "centralized_pooled_data": 0.6593
+  },
+  "robustness_pr_auc": {
+    "none": {
+      "fedavg": 0.7656,
+      "trimmed_mean": 0.7826,
+      "median": 0.7873,
+      "multi_krum": 0.771
+    },
+    "label_flip": {
+      "fedavg": 0.7774,
+      "trimmed_mean": 0.7831,
+      "median": 0.2318,
+      "multi_krum": 0.6145
+    },
+    "sign_flip": {
+      "fedavg": 0.0012,
+      "trimmed_mean": 0.7639,
+      "median": 0.776,
+      "multi_krum": 0.7861
+    },
+    "noise": {
+      "fedavg": 0.7543,
+      "trimmed_mean": 0.7808,
+      "median": 0.7742,
+      "multi_krum": 0.7585
+    }
+  },
+  "privacy": [
+    {
+      "noise_multiplier": 0.0,
+      "epsilon": Infinity,
+      "pr_auc": 0.7656
+    },
+    {
+      "noise_multiplier": 0.8,
+      "epsilon": 12.27,
+      "pr_auc": 0.7653
+    },
+    {
+      "noise_multiplier": 1.5,
+      "epsilon": 3.92,
+      "pr_auc": 0.7456
+    }
+  ],
+  "secure_aggregation": {
+    "plain_pr_auc": 0.7647,
+    "secure_pr_auc": 0.7464
+  }
+}

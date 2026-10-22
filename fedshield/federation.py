@@ -83,7 +83,7 @@ def evaluate(model, tests, norm) -> dict:
     for x, y, _, name, _raw in tests:
         per_bank[name] = float(average_precision_score(y, p[i : i + len(y)]))
         i += len(y)
-    recall = {t: float((p[typ == t] > thr).mean()) for t in TYPOLOGIES}
+    recall = {t: float((p[typ == t] > thr).mean()) for t in sorted(set(typ) - {""})}  # typologies present in the test data
     raw_fraud = np.vstack([t[4][t[1] == 1] for t in tests])
     trig = predict(model, norm(apply_trigger(raw_fraud)))
     return {"pr_auc": float(average_precision_score(ys, p)), "per_bank": per_bank, "recall": recall,
