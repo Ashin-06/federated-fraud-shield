@@ -5,11 +5,15 @@
     python -m fedshield run --secure-agg --client-clip 5
     python -m fedshield experiments [--quick]
     python -m fedshield realdata --data creditcard.pq     # the same on real card transactions
+    python -m fedshield serve                             # model service (settings: FEDSHIELD_* environment variables)
+    python -m fedshield migrate                           # apply database migrations and exit
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import sys
 
 from .aggregators import AGGREGATORS
 from .attacks import ATTACKS
@@ -40,7 +44,30 @@ def main(argv=None):
     rd.add_argument("--data", required=True, help="OpenML #1597 parquet or Kaggle creditcard.csv")
     rd.add_argument("--rounds", type=int, default=30)
     rd.add_argument("--out", default="results/real_data.json")
+    sv = sub.add_parser("serve", help="model service")
+    sv.add_argument("--host", help="default FEDSHIELD_HOST or 127.0.0.1; any other address needs API keys")
+    sv.add_argument("--port", type=int, help="default FEDSHIELD_PORT or 8003")
+    sub.add_parser("migrate", help="apply database migrations to FEDSHIELD_DATABASE_URL")
     a = ap.parse_args(argv)
+
+    if a.cmd in ("serve", "migrate"):
+        from . import db, ops
+
+        for name, val in (("HOST", getattr(a, "host", None)), ("PORT", getattr(a, "port", None))):
+            if val is not None:
+                os.environ[f"FEDSHIELD_{name}"] = str(val)
+        try:
+            settings = ops.load_settings()  # fail here, before uvicorn, with a readable message
+        except ops.ConfigError as e:
+            sys.exit(f"configuration error: {e}")
+        if a.cmd == "migrate":
+            print(*(db.migrate(db.engine(settings.database_url)) or ["up to date"]), sep="\n")
+            return
+        import uvicorn
+
+        ops.setup_logging(settings.log_level)
+        uvicorn.run("fedshield.api:app", host=settings.host, port=settings.port, log_config=None, access_log=False)
+        return
 
     if a.cmd == "realdata":
         from .realdata import main as realdata

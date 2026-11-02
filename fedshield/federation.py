@@ -80,7 +80,7 @@ def evaluate(model, tests, norm) -> dict:
     p = predict(model, xs)
     thr = np.quantile(p[ys == 0], 0.99)  # operate at 1% false-positive rate
     per_bank, i = {}, 0
-    for x, y, _, name, _raw in tests:
+    for _x, y, _, name, _raw in tests:
         per_bank[name] = float(average_precision_score(y, p[i : i + len(y)]))
         i += len(y)
     recall = {t: float((p[typ == t] > thr).mean()) for t in sorted(set(typ) - {""})}  # typologies present in the test data
@@ -92,7 +92,9 @@ def evaluate(model, tests, norm) -> dict:
 
 def _prepare(banks: list[Bank]):
     mean, std = federated_stats(banks)
-    norm = lambda x: ((x - mean) / std).astype(np.float32)
+    def norm(x):
+        return ((x - mean) / std).astype(np.float32)
+
     tests = [(norm(b.x_test), b.y_test, b.typ_test, b.name, b.x_test) for b in banks]
     return norm, tests
 
