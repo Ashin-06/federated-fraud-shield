@@ -1,7 +1,9 @@
 """Pairwise-masking secure aggregation (Bonawitz et al., 2017, without dropout recovery).
 
 Every pair of banks agrees on a secret with X25519. Each bank adds a pseudo-random mask
-per peer (one side adds, the other subtracts) to its fixed-point update. The server
+per peer (one side adds, the other subtracts) to its fixed-point update. Masks are the ChaCha20
+keystream under a per-round key derived with HKDF, so they are unpredictable without the pair's
+secret (numpy's PCG64 generator, used before, is not a cryptographic generator). The server
 only ever sees masked vectors; when it adds them up the masks cancel exactly and only
 the sum is revealed.
 
@@ -14,6 +16,7 @@ from __future__ import annotations
 import numpy as np
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
@@ -38,8 +41,10 @@ class SecAggClient:
 
     def _mask(self, peer_pk: bytes, round_id: int, size: int) -> np.ndarray:
         shared = self._sk.exchange(X25519PublicKey.from_public_bytes(peer_pk))
-        seed = HKDF(hashes.SHA256(), 32, salt=None, info=b"fedshield-secagg-round-%d" % round_id).derive(shared)
-        return np.random.default_rng(int.from_bytes(seed, "big")).integers(0, MOD, size, dtype=np.int64)
+        key = HKDF(hashes.SHA256(), 32, salt=None, info=b"fedshield-secagg-round-%d" % round_id).derive(shared)
+        # a fresh key per round and pair, so a fixed nonce is safe; 8 keystream bytes per coordinate
+        stream = Cipher(algorithms.ChaCha20(key, b"\x00" * 16), mode=None).encryptor().update(b"\x00" * (8 * size))
+        return (np.frombuffer(stream, dtype="<u8") % MOD).astype(np.int64)
 
     def masked_update(self, update: np.ndarray, directory: dict[int, bytes], round_id: int) -> np.ndarray:
         enc = encode(update)
