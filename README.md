@@ -26,13 +26,32 @@ python -m fedshield experiments                       # full result tables and p
 streamlit run app.py                                  # interactive simulator
 ```
 
+## Model service
+
+`python -m fedshield serve` (or the container image, `docker build -t federated-fraud-shield .`, see [docs/runbook.md](docs/runbook.md)) publishes and serves federated models.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/train` | run a federation on the simulated consortium (aggregator, rounds, DP noise, secure aggregation) and publish a model version |
+| `GET /v1/models` | published versions with PR-AUC, ε and configuration |
+| `POST /v1/score` | fraud scores from the newest version, flagged at its 1% false-positive threshold |
+| `GET /healthz`, `/readyz`, `/metrics` | health, readiness and Prometheus metrics |
+
+Model versions are stored as float32 arrays in SQLite or Postgres, never as pickles. API keys carry a role: `scorer`, `viewer`, `trainer`, `monitor`. Create one with `python -m fedshield.ops keygen`.
+
+| Variable | Purpose |
+|---|---|
+| `FEDSHIELD_ENV=production` | refuse to start without hashed API keys and a database |
+| `FEDSHIELD_API_KEYS` / `FEDSHIELD_KEYS_FILE` | hashed API keys with roles |
+| `FEDSHIELD_DATABASE_URL` | `sqlite:///...` or `postgresql://...` |
+
 ## Results
 
 | Test | Result |
 |---|---|
-| Simulated consortium, recall on fraud types a bank never saw | 0.00–0.07 alone, 0.37–0.80 federated |
-| Simulated consortium, two malicious banks using sign flipping | FedAvg drops to PR-AUC 0.05; Multi-Krum keeps 0.63 |
-| Simulated backdoor attack | FedAvg lets through 41% more triggered fraud; Multi-Krum 3% |
+| Simulated consortium, recall on fraud types a bank never saw | 0.00–0.07 alone, 0.37–0.78 federated |
+| Simulated consortium, two malicious banks using sign flipping | FedAvg drops to PR-AUC 0.05; Multi-Krum keeps 0.64 |
+| Simulated backdoor attack | FedAvg lets through 47% more triggered fraud; Multi-Krum 5% |
 | Real card transactions (ULB, split into 8 banks) | federation helps 6 of 8 banks; global PR-AUC 0.77 |
 | Real data, differential privacy at ε = 3.9 | PR-AUC 0.746 against 0.765 without |
 
@@ -51,6 +70,8 @@ fedshield/
   secure_agg.py    pairwise-masked secure aggregation
   federation.py    training loop and baselines
   experiments.py   reproducible experiment suite
+  api.py           model service: train, publish, score
+  ops.py           settings, API keys, limits, logs, metrics
 app.py             Streamlit simulator
 ```
 
@@ -60,4 +81,11 @@ app.py             Streamlit simulator
 - Secure aggregation assumes no bank drops out during a round. Production protocols add secret sharing of the mask seeds for that case.
 - Secure aggregation can't be combined with Krum or the median, which need to see individual updates. The code refuses that combination.
 - No multi-bank fraud dataset is public, so the real-data test splits one bank's data into eight.
-- There is no API service yet; it runs as a CLI and a dashboard.
+- Training through the API runs the simulated consortium in the service process; it publishes a model, it doesn't federate real banks.
+- The code has not had an independent security review.
+
+See [SECURITY.md](SECURITY.md), [docs/threat-model.md](docs/threat-model.md) and [docs/model-card.md](docs/model-card.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).

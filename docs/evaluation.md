@@ -2,7 +2,7 @@
 
 ## Simulated consortium
 
-`python -m fedshield experiments` runs the full suite (30 rounds, about 11 minutes on a laptop CPU) and writes the tables to `results/`.
+`python -m fedshield experiments` runs the full suite (30 rounds) and writes the tables to `results/`. The numbers below are from a re-run on the pinned dependencies (torch 2.15); the first run, on older versions, gave the same conclusions with slightly different values. The real-data results further down were not re-run.
 
 ![summary](../results/summary.png)
 
@@ -12,16 +12,16 @@ Setup: 8 banks of different sizes (1,500–9,000 training rows) and customer mix
 
 | Bank | Fraud types seen | Alone PR-AUC | Federated PR-AUC | Alone: recall on unseen fraud | Federated: recall on unseen fraud |
 |---|---|---|---|---|---|
-| Metro Retail Bank | card testing, ATO | 0.442 | 0.725 | 0.01 | 0.38 |
-| NeoBank | ATO, CNP | 0.347 | 0.615 | 0.03 | 0.37 |
-| Coastal Cooperative | skimming, card testing | 0.285 | 0.673 | 0.04 | 0.62 |
-| Prairie Credit Union | bust-out, skimming | 0.277 | 0.708 | 0.07 | 0.80 |
-| Wallet Pay | CNP, bust-out | 0.249 | 0.572 | 0.00 | 0.57 |
-| Harbor Savings | ATO, skimming | 0.285 | 0.697 | 0.00 | 0.67 |
-| Summit Card Services | card testing, CNP | 0.340 | 0.676 | 0.05 | 0.46 |
-| Lakeside Bank | bust-out, ATO | 0.323 | 0.714 | 0.02 | 0.53 |
+| Metro Retail Bank | card testing, ATO | 0.441 | 0.715 | 0.03 | 0.37 |
+| NeoBank | ATO, CNP | 0.351 | 0.617 | 0.02 | 0.38 |
+| Coastal Cooperative | skimming, card testing | 0.292 | 0.677 | 0.04 | 0.69 |
+| Prairie Credit Union | bust-out, skimming | 0.277 | 0.696 | 0.07 | 0.78 |
+| Wallet Pay | CNP, bust-out | 0.249 | 0.570 | 0.00 | 0.57 |
+| Harbor Savings | ATO, skimming | 0.285 | 0.693 | 0.00 | 0.64 |
+| Summit Card Services | card testing, CNP | 0.340 | 0.672 | 0.05 | 0.47 |
+| Lakeside Bank | bust-out, ATO | 0.323 | 0.716 | 0.02 | 0.53 |
 
-Recall is measured at a 1% false-positive rate. The federated global PR-AUC is 0.667, against 0.705 when all raw data is pooled in one place.
+Recall is measured at a 1% false-positive rate. The federated global PR-AUC is 0.663, against 0.711 when all raw data is pooled in one place.
 
 ### Two of eight banks malicious
 
@@ -29,13 +29,13 @@ Global PR-AUC:
 
 | Attack \ Aggregator | FedAvg | Norm clip | Trimmed mean | Median | Krum | Multi-Krum |
 |---|---|---|---|---|---|---|
-| none | 0.667 | 0.654 | 0.649 | 0.573 | 0.320 | 0.665 |
-| label flip | 0.609 | 0.595 | 0.507 | 0.471 | 0.205 | 0.632 |
-| sign flip (boosted) | 0.050 | 0.560 | 0.393 | 0.430 | 0.254 | 0.632 |
-| random noise | 0.578 | 0.622 | 0.610 | 0.543 | 0.254 | 0.632 |
-| backdoor (boosted) | 0.520 | 0.654 | 0.645 | 0.587 | 0.254 | 0.632 |
+| none | 0.663 | 0.655 | 0.649 | 0.582 | 0.320 | 0.658 |
+| label flip | 0.613 | 0.600 | 0.485 | 0.475 | 0.205 | 0.643 |
+| sign flip (boosted) | 0.050 | 0.560 | 0.398 | 0.421 | 0.254 | 0.643 |
+| random noise | 0.583 | 0.620 | 0.620 | 0.584 | 0.254 | 0.643 |
+| backdoor (boosted) | 0.604 | 0.660 | 0.643 | 0.593 | 0.254 | 0.643 |
 
-Backdoor success, measured as extra triggered fraud let through compared with a clean model: FedAvg +41%, norm clip +39%, trimmed mean +31%, median +23%, Krum +15%, Multi-Krum +3%.
+Backdoor success, measured as extra triggered fraud let through compared with a clean model: FedAvg +47%, norm clip +27%, trimmed mean +33%, median +25%, Krum +15%, Multi-Krum +5%.
 
 Plain FedAvg is destroyed by one boosted sign-flip attacker. Krum is robust but discards most of the honest signal when banks' data differ. Multi-Krum keeps clean accuracy and resists every attack tested. The backdoor trigger uses two fields with no fraud signal of their own, so it doesn't show up in clean accuracy.
 
@@ -43,7 +43,7 @@ Plain FedAvg is destroyed by one boosted sign-flip attacker. Krum is robust but 
 
 | DP noise multiplier | ε (δ = 1e-5) | PR-AUC |
 |---|---|---|
-| 0 (off) | ∞ | 0.667 |
+| 0 (off) | ∞ | 0.663 |
 | 0.6 | 30.2 | 0.502 |
 | 0.8 | 15.3 | 0.486 |
 | 1.0 | 9.3 | 0.469 |
@@ -52,7 +52,7 @@ Plain FedAvg is destroyed by one boosted sign-flip attacker. Krum is robust but 
 
 Each bank runs DP-SGD locally with per-example gradients clipped to norm 1, Gaussian noise and Poisson sampling. ε comes from the Rényi DP of the sampled Gaussian mechanism (Mironov et al., 2019), composed over every local step, and is reported for the worst-case bank.
 
-Secure aggregation: each pair of banks agrees on a key with X25519 and derives a fresh mask every round with HKDF. Updates are encoded as fixed-point numbers mod 2^48, so the masks cancel exactly and the server only sees the sum. The final PR-AUC matches plain FedAvg within rounding (0.664 vs 0.667).
+Secure aggregation: each pair of banks agrees on a key with X25519 and derives a fresh mask every round with HKDF. Updates are encoded as fixed-point numbers mod 2^48, so the masks cancel exactly and the server only sees the sum. The final PR-AUC matches plain FedAvg to within 0.006. Masks now come from the ChaCha20 stream cipher (they came from numpy's PCG64 generator, which is not cryptographically secure); since masks cancel exactly, the result doesn't depend on how they are generated.
 
 ## Real card transactions
 
