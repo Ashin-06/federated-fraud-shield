@@ -56,7 +56,7 @@ def test_models_are_published_scored_and_kept_across_a_restart(monkeypatch, tmp_
     url = os.environ.get("TEST_DATABASE_URL") or f"sqlite:///{tmp_path / 'fed.db'}"
     c = TestClient(boot(monkeypatch, DATABASE_URL=url).app)
     assert c.post("/v1/score", json={"rows": ROWS}).status_code == 409  # nothing published yet
-    assert c.get("/readyz").status_code == 503
+    assert c.get("/readyz").status_code == 200  # ready before a model exists, so /v1/train can reach it
     v = c.post("/v1/train", json={"rounds": 2, "dp_sigma": 1.0}).json()
     assert v["version"] >= 1 and v["epsilon"] is not None
     assert c.post("/v1/train", json={"rounds": 1, "secure_agg": True, "aggregator": "median"}).status_code == 422

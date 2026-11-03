@@ -16,8 +16,8 @@ curl -fsS http://127.0.0.1:8003/readyz
 ```
 
 The image runs in production mode as a non-root user with its SQLite database in `/data`. It refuses
-to start, and logs why, without keys or a database URL. `/readyz` reports not ready until a model
-version has been published. Training runs the simulated consortium in the service process; a real
+to start, and logs why, without keys or a database URL. `/readyz` reports ready once the database
+answers; `POST /v1/score` returns 409 until a model version has been published. Training runs the simulated consortium in the service process; a real
 consortium needs each bank's training as its own service (see the README).
 
 ## Configure
@@ -32,7 +32,7 @@ consortium needs each bank's training as its own service (see the README).
 
 ## Watch
 
-- `GET /healthz`; `GET /readyz` (database and a published model); `GET /metrics` (role `monitor`):
+- `GET /healthz`; `GET /readyz` (database); `GET /metrics` (role `monitor`):
   requests, latency, errors, `fedshield_decisions_total{decision="model_published|flagged|cleared"}`.
 - `GET /v1/models` lists each version's PR-AUC, ε and configuration.
 

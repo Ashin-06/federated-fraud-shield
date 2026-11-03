@@ -2,6 +2,13 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org/).
 
+## 1.0.1 — 2026-11-03
+
+### Fixed
+- `/readyz` now reports ready once the database answers. It used to wait for a published model, which
+  kept traffic (including the `/v1/train` call that publishes the first model) away from a new
+  deployment behind a readiness probe. `POST /v1/score` still returns 409 until a model exists.
+
 ## 1.0.0 — 2026-11-02
 
 ### Added

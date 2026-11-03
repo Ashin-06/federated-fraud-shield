@@ -67,7 +67,9 @@ def _model(row: Dict[str, Any]):
     return _cache
 
 
-ops.install(app, settings, {"database": lambda: engine.connect().close(), "model": lambda: newest() is not None})
+# Ready means the database answers. Not "a model is published": that would keep traffic, including the
+# /v1/train call that publishes the first model, away from a new deployment. /v1/score returns 409 until then.
+ops.install(app, settings, {"database": lambda: engine.connect().close()})
 
 
 class TrainRequest(BaseModel):

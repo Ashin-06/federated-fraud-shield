@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "federated-fraud-shield"
-version = "1.0.0"
+version = "1.0.1"
 description = "Federated fraud detection across banks with robust aggregation, differential privacy, secure aggregation and a model service"
 readme = "README.md"
 requires-python = ">=3.12"
